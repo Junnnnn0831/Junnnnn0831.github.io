@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#071a26">
+<title>幸運抽獎｜iPad 離線版</title>
+<style>
+  :root{
+    --gold:#f2b134;
+    --gold-soft:#ffd873;
+    --teal:#29c2a6;
+    --deep:#071a26;
+    --panel:#0d2436;
+    --panel2:#113049;
+    --muted:#9ab7c3;
+    --text:#f2f8fa;
+    --idle-size:38vh;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;background:var(--deep);overflow:hidden}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior:none;touch-action:manipulation;
+  }
+  button,input{font:inherit}
+  button{cursor:pointer}
+  button:disabled{cursor:not-allowed}
+  .display{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;letter-spacing:.02em}
+  .hidden{display:none!important}
+  .app{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden}
+  .background{position:fixed;inset:0;z-index:0;background-color:var(--deep);background-size:cover;background-position:center;background-repeat:no-repeat}
+  /* 背景不加任何濾鏡或深色遮罩，保留上傳圖片原始色彩 */
+  .top-actions{position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:60;display:flex;gap:10px}
+  .icon-btn{width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(7,26,38,.58);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--text);display:grid;place-items:center;transition:.18s ease}
+  .icon-btn:active{transform:scale(.96)}
+  .icon-btn.active{border-color:var(--gold);color:var(--gold-soft);background:rgba(242,177,52,.16)}
+  .icon-btn svg{width:22px;height:22px}
+
+  .drawer{position:fixed;z-index:55;left:0;top:0;width:min(430px,100vw);height:100vh;height:100dvh;background:linear-gradient(180deg,rgba(13,36,54,.985),rgba(7,26,38,.99));border-right:1px solid rgba(255,255,255,.12);box-shadow:20px 0 60px rgba(0,0,0,.35);transform:translateX(-102%);transition:transform .28s ease;display:flex;flex-direction:column}
+  .drawer.open{transform:translateX(0)}
+  .drawer-head{padding:max(18px,env(safe-area-inset-top)) 18px 16px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;gap:14px;flex:0 0 auto}
+  .drawer-title{font-weight:800;color:var(--gold-soft);font-size:17px}
+  .drawer-note{font-size:12px;color:var(--muted);margin-top:4px}
+  .close-btn{border:0;background:transparent;color:var(--muted);width:44px;height:44px;font-size:22px;border-radius:12px}
+  .close-btn:active{background:rgba(255,255,255,.08)}
+  .drawer-body{padding:18px 18px calc(24px + env(safe-area-inset-bottom));overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:20px}
+  .section{display:flex;flex-direction:column;gap:10px}
+  .section.card{padding:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:16px}
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .section-label{font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.08em}
+  .badge{font-size:11px;font-weight:800;color:var(--teal);background:rgba(41,194,166,.14);padding:4px 8px;border-radius:999px}
+  .btn-row{display:flex;gap:8px}
+  .soft-btn,.upload-btn,.danger-btn,.add-btn{min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.16);padding:10px 13px;font-weight:750;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center}
+  .upload-btn{flex:1;border-color:rgba(242,177,52,.48);color:var(--gold-soft);background:rgba(242,177,52,.06)}
+  .upload-btn:active,.add-btn:active{background:rgba(242,177,52,.15)}
+  .soft-btn{color:var(--muted);background:rgba(255,255,255,.04)}
+  .danger-btn{color:#ffb4b4;border-color:rgba(255,140,140,.38);background:rgba(255,100,100,.04)}
+  .add-btn{width:100%;border-style:dashed;border-color:rgba(242,177,52,.48);color:var(--gold-soft);background:transparent}
+  .range-wrap{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:2px}
+  input[type="range"]{width:100%;accent-color:var(--gold);height:36px}
+  .range-value{min-width:76px;text-align:right;color:var(--gold-soft);font-size:12px;font-weight:800}
+  .hint{font-size:11px;line-height:1.55;color:var(--muted)}
+
+  .prize-list{display:flex;flex-direction:column;gap:9px;max-height:320px;overflow:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
+  .prize-row{padding:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:14px}
+  .prize-main{display:grid;grid-template-columns:48px minmax(0,1fr) 64px 42px;gap:8px;align-items:center}
+  .prize-img{width:48px;height:48px;border-radius:11px;border:1px dashed rgba(242,177,52,.48);background:rgba(255,255,255,.04);background-size:cover;background-position:center;display:grid;place-items:center;font-size:20px;overflow:hidden}
+  .prize-img.has-image{border-style:solid;color:transparent}
+  .field{width:100%;height:44px;border-radius:11px;border:1px solid rgba(143,176,189,.28);background:rgba(7,26,38,.6);color:var(--text);padding:0 11px;font-size:14px;outline:none}
+  .field:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,177,52,.16)}
+  .count-field{text-align:center;padding:0 4px}
+  .delete-prize{width:42px;height:44px;border-radius:11px;border:0;background:transparent;color:var(--muted);font-size:19px}
+  .delete-prize:active{background:rgba(255,90,90,.12);color:#ffb4b4}
+  .remaining{font-size:11px;color:var(--muted);padding:7px 2px 0 58px}
+  .remaining b{color:var(--gold-soft)}
+
+  .winner-tools{display:flex;gap:14px}
+  .link-btn{border:0;background:transparent;padding:5px 0;font-size:12px;color:var(--teal)}
+  .link-btn.danger{color:#ffb4b4}
+  .winner-list{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.045);border-radius:14px;padding:7px;max-height:190px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .winner-row{display:flex;justify-content:space-between;gap:14px;padding:8px 7px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
+  .winner-row:last-child{border-bottom:0}.winner-name{font-weight:800}.winner-time{color:var(--muted);white-space:nowrap}
+  .empty{padding:18px 8px;text-align:center;color:var(--muted);font-size:12px}
+
+  .stage{position:relative;z-index:10;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(26px + env(safe-area-inset-top)) 28px calc(116px + env(safe-area-inset-bottom));pointer-events:none}
+  .event-head{max-width:min(92vw,900px);text-shadow:0 2px 12px rgba(0,0,0,.72),0 1px 3px rgba(0,0,0,.95);margin-bottom:22px}
+  .event-title{font-size:clamp(25px,3.3vw,38px);font-weight:900;color:var(--gold-soft);line-height:1.15}
+  .event-meta{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px 12px;font-size:clamp(12px,1.6vw,15px);font-weight:650;color:#fff}
+  .meta-chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(7,26,38,.5);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+
+  .state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:310px;max-width:92vw}
+  .idle-image{height:var(--idle-size);max-height:66vh;max-width:90vw;width:auto;object-fit:contain;border-radius:18px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.28));animation:none;transform:none;will-change:auto}
+  .fallback-orb,.rolling-orb{position:relative;width:250px;height:250px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,rgba(242,177,52,.16),rgba(7,26,38,.05) 68%,transparent 70%);box-shadow:0 0 0 2px rgba(242,177,52,.28),0 0 60px rgba(242,177,52,.22);animation:orbPulse .6s ease-in-out infinite alternate}
+  @keyframes orbPulse{from{box-shadow:0 0 0 2px rgba(242,177,52,.24),0 0 38px rgba(242,177,52,.16)}to{box-shadow:0 0 0 2px rgba(242,177,52,.42),0 0 74px rgba(242,177,52,.38)}}
+  .fallback-orb{font-size:68px}
+  .rolling-content{display:flex;flex-direction:column;align-items:center;max-width:205px;padding:0 8px}
+  .rolling-img{width:72px;height:72px;border-radius:50%;background-size:cover;background-position:center;border:1px solid rgba(242,177,52,.45);margin-bottom:10px}
+  .rolling-name{font-size:clamp(25px,4vw,37px);font-weight:900;color:#fff;line-height:1.15;text-shadow:0 2px 9px rgba(0,0,0,.6);word-break:break-word}
+  .status-text{font-size:14px;color:#fff;margin-top:18px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+  .status-text.gold{color:var(--gold-soft)}
+  .winner-card{width:min(540px,88vw);padding:34px 34px 38px;border-radius:26px;background:linear-gradient(135deg,rgba(13,36,54,.94),rgba(17,48,73,.94));border:1px solid rgba(242,177,52,.58);box-shadow:0 22px 55px rgba(0,0,0,.32),0 0 60px rgba(242,177,52,.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:pop .58s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(22px)}to{opacity:1;transform:none}}
+  .winner-img{width:104px;height:104px;border-radius:18px;background-size:cover;background-position:center;border:1px solid rgba(242,177,52,.45);margin:0 auto 15px}
+  .gift{font-size:56px;margin-bottom:12px}
+  .congrats{font-size:12px;letter-spacing:.2em;color:var(--muted);font-weight:800}
+  .winner-prize{margin-top:7px;font-size:clamp(28px,5vw,58px);font-weight:900;color:var(--gold-soft);line-height:1.12;word-break:break-word}
+
+  .bottom-actions{position:fixed;left:50%;bottom:max(24px,calc(18px + env(safe-area-inset-bottom)));transform:translateX(-50%);z-index:35;display:flex;gap:12px;align-items:center;pointer-events:auto}
+  .draw-btn{height:64px;min-width:206px;padding:0 30px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--gold),var(--teal));color:#092131;font-size:19px;font-weight:900;box-shadow:0 13px 32px -8px rgba(242,177,52,.72);transition:.16s ease}
+  .draw-btn:active{transform:scale(.96)}
+  .draw-btn:disabled{opacity:.48;filter:saturate(.7)}
+  .home-btn{width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(7,26,38,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;display:grid;place-items:center}
+  .home-btn:active{transform:scale(.96)}
+  .home-btn svg{width:25px;height:25px}
+
+  .toast{position:fixed;left:50%;top:max(76px,calc(60px + env(safe-area-inset-top)));transform:translate(-50%,-12px);z-index:100;background:rgba(7,26,38,.92);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:11px 16px;font-size:13px;font-weight:700;box-shadow:0 12px 34px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:.22s ease;max-width:86vw;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  #confettiCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:50;pointer-events:none}
+
+  @media (orientation:portrait) and (max-width:900px){
+    .stage{padding-left:18px;padding-right:18px}.event-head{margin-bottom:14px}.state{min-height:280px}.idle-image{max-height:58vh}.bottom-actions{bottom:max(22px,calc(14px + env(safe-area-inset-bottom)))}
+  }
+  @media (max-height:650px){
+    .event-head{margin-bottom:10px}.event-meta{margin-top:5px}.state{min-height:220px}.idle-image{max-height:48vh}.fallback-orb,.rolling-orb{width:205px;height:205px}.bottom-actions{bottom:max(14px,env(safe-area-inset-bottom))}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="background" id="background"></div>
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="top-actions">
+    <button class="icon-btn" id="fullscreenBtn" aria-label="切換全螢幕" title="全螢幕">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" aria-label="開啟工作人員設定" title="工作人員設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63h.01A1.7 1.7 0 0 0 10.03 3.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9v.01A1.7 1.7 0 0 0 20.9 10.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>
+      </svg>
+    </button>
+  </div>
+
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-title">工作人員設定</div>
+        <div class="drawer-note">🔒 僅工作人員操作｜iPad 離線版</div>
+      </div>
+      <button class="close-btn" id="closeDrawerBtn" aria-label="關閉設定">✕</button>
+    </div>
+    <div class="drawer-body">
+      <!-- 已依需求移除「活動資訊」資料設定區 -->
+
+      <section class="section card">
+        <div class="section-label">活動背景圖片</div>
+        <div class="btn-row">
+          <label class="upload-btn">🖼️ 上傳背景圖<input class="hidden" id="bgInput" type="file" accept="image/*"></label>
+          <button class="soft-btn" id="clearBgBtn">清除</button>
+        </div>
+        <div class="hint">預設不顯示背景圖片；上傳後將以原始色彩顯示，不加深色遮罩或濾鏡。</div>
+      </section>
+
+      <section class="section card">
+        <div class="section-label">抽獎機待機主視覺</div>
+        <div class="btn-row">
+          <label class="upload-btn">🎯 上傳待機圖<input class="hidden" id="idleInput" type="file" accept="image/*"></label>
+          <button class="soft-btn" id="clearIdleBtn">清除</button>
+        </div>
+        <div class="range-wrap">
+          <input id="idleSizeRange" type="range" min="18" max="56" step="1" value="38" aria-label="待機主視覺大小">
+          <span class="range-value" id="idleSizeValue">38% 高度</span>
+        </div>
+        <div class="hint">拖曳即可調整待機主視覺大小；設定會保留在本機。</div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div class="section-label">獎項清單</div>
+          <span class="badge" id="prizeCountBadge">0 項</span>
+        </div>
+        <div class="prize-list" id="prizeList"></div>
+        <button class="add-btn" id="addPrizeBtn">＋ 新增獎項</button>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div class="section-label">中獎紀錄</div>
+          <div class="winner-tools">
+            <button class="link-btn" id="exportBtn">📊 匯出 CSV</button>
+            <button class="link-btn danger" id="clearWinnersBtn">清空</button>
+          </div>
+        </div>
+        <div class="winner-list" id="winnerList"></div>
+      </section>
+
+      <button class="danger-btn" id="resetBtn">重設中獎紀錄</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <section class="state" id="idleState">
+      <img class="idle-image hidden" id="idleImage" alt="抽獎機待機主視覺">
+      <div class="fallback-orb" id="idleFallback">🎁</div>
+    </section>
+
+    <section class="state hidden" id="rollingState">
+      <div class="rolling-orb">
+        <div class="rolling-content">
+          <div class="rolling-img hidden" id="rollingImg"></div>
+          <div class="rolling-name display" id="rollingName">抽獎中</div>
+        </div>
+      </div>
+      <div class="status-text gold">抽獎中...</div>
+    </section>
+
+    <section class="state hidden" id="winnerState">
+      <div class="winner-card">
+        <div class="winner-img hidden" id="winnerImg"></div>
+        <div class="gift" id="winnerGift">🎁</div>
+        <div class="congrats">恭喜中獎</div>
+        <div class="winner-prize display" id="winnerPrize"></div>
+      </div>
+    </section>
+
+    <div class="status-text hidden" id="allDone">所有獎項已經抽完囉，感謝參與！請洽工作人員。</div>
+  </main>
+
+  <div class="bottom-actions">
+    <button class="draw-btn" id="drawBtn">🎉 開始抽獎</button>
+    <button class="home-btn hidden" id="homeBtn" aria-label="返回待機畫面" title="返回待機畫面">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 19 3 12l7-7M3 12h18"/></svg>
+    </button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const DEFAULT_BG = null;
+  const KEYS = {
+    prizes:'ztz_lottery_prizes',
+    winners:'ztz_lottery_winners',
+    bg:'ztz_lottery_bg',
+    idle:'ztz_lottery_idle',
+    idleSize:'ztz_lottery_idle_size'
+  };
+
+  const state = {
+    bgImage: DEFAULT_BG,
+    idleImage: null,
+    idleSize: 38,
+    prizes: [
+      {id:genId(),name:'特獎',count:1,image:null},
+      {id:genId(),name:'二獎',count:3,image:null},
+      {id:genId(),name:'三獎',count:5,image:null}
+    ],
+    winners: [],
+    rolling:false,
+    currentPrize:null
+  };
+
+  const $ = s => document.querySelector(s);
+  const els = {
+    background:$('#background'), drawer:$('#drawer'), settingsBtn:$('#settingsBtn'), closeDrawerBtn:$('#closeDrawerBtn'), fullscreenBtn:$('#fullscreenBtn'),
+    bgInput:$('#bgInput'), clearBgBtn:$('#clearBgBtn'), idleInput:$('#idleInput'), clearIdleBtn:$('#clearIdleBtn'), idleSizeRange:$('#idleSizeRange'), idleSizeValue:$('#idleSizeValue'),
+    prizeList:$('#prizeList'), prizeCountBadge:$('#prizeCountBadge'), addPrizeBtn:$('#addPrizeBtn'), winnerList:$('#winnerList'), exportBtn:$('#exportBtn'), clearWinnersBtn:$('#clearWinnersBtn'), resetBtn:$('#resetBtn'),
+    idleState:$('#idleState'), idleImage:$('#idleImage'), idleFallback:$('#idleFallback'), rollingState:$('#rollingState'), rollingImg:$('#rollingImg'), rollingName:$('#rollingName'),
+    winnerState:$('#winnerState'), winnerImg:$('#winnerImg'), winnerGift:$('#winnerGift'), winnerPrize:$('#winnerPrize'), allDone:$('#allDone'), drawBtn:$('#drawBtn'), homeBtn:$('#homeBtn'), toast:$('#toast'), canvas:$('#confettiCanvas')
+  };
+
+  function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function clamp(n,min,max){ return Math.min(max,Math.max(min,n)); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c])); }
+
+  function storageGet(key){ try{return localStorage.getItem(key);}catch(e){return null;} }
+  function storageSet(key,val){
+    try{ localStorage.setItem(key,val); return true; }
+    catch(e){ showToast('目前仍可使用，但本機儲存空間不足；大圖重新開啟後可能需再上傳。'); return false; }
+  }
+  function storageRemove(key){ try{localStorage.removeItem(key);}catch(e){} }
+
+  function loadState(){
+    try{
+      const p = storageGet(KEYS.prizes); if(p){ const v=JSON.parse(p); if(Array.isArray(v)) state.prizes=v; }
+      const w = storageGet(KEYS.winners); if(w){ const v=JSON.parse(w); if(Array.isArray(v)) state.winners=v; }
+      const bg = storageGet(KEYS.bg); if(bg) state.bgImage=bg;
+      const idle = storageGet(KEYS.idle); if(idle) state.idleImage=idle;
+      const sz = Number(storageGet(KEYS.idleSize)); if(Number.isFinite(sz)) state.idleSize=clamp(sz,18,56);
+    }catch(e){ console.warn('讀取本機資料失敗',e); }
+  }
+  function savePrizes(){ storageSet(KEYS.prizes,JSON.stringify(state.prizes)); }
+  function saveWinners(){ storageSet(KEYS.winners,JSON.stringify(state.winners)); }
+
+  function remainingOf(prize){
+    const won = state.winners.reduce((n,w)=>n+(w.prizeId===prize.id?1:0),0);
+    return Math.max(0,(Number(prize.count)||0)-won);
+  }
+  function availablePrizes(){ return state.prizes.filter(p=>remainingOf(p)>0); }
+
+  function renderBackground(){
+    els.background.style.backgroundImage = state.bgImage ? `url(${state.bgImage})` : 'none';
+    els.clearBgBtn.classList.toggle('hidden',!state.bgImage);
+  }
+  function renderIdleImage(){
+    document.documentElement.style.setProperty('--idle-size',state.idleSize+'vh');
+    els.idleSizeRange.value=state.idleSize;
+    els.idleSizeValue.textContent=state.idleSize+'% 高度';
+    if(state.idleImage){
+      els.idleImage.src=state.idleImage; els.idleImage.classList.remove('hidden'); els.idleFallback.classList.add('hidden');
+    }else{
+      els.idleImage.removeAttribute('src'); els.idleImage.classList.add('hidden'); els.idleFallback.classList.remove('hidden');
+    }
+    els.clearIdleBtn.classList.toggle('hidden',!state.idleImage);
+  }
+  function renderPrizes(){
+    els.prizeCountBadge.textContent=state.prizes.length+' 項';
+    if(!state.prizes.length){ els.prizeList.innerHTML='<div class="empty">尚無獎項，請新增</div>'; return; }
+    els.prizeList.innerHTML=state.prizes.map(p=>{
+      const imageStyle=p.image?`style="background-image:url('${String(p.image).replace(/'/g,"%27")}')"`:'';
+      return `<div class="prize-row" data-id="${escapeHtml(p.id)}">
+        <div class="prize-main">
+          <label class="prize-img ${p.image?'has-image':''}" ${imageStyle}>${p.image?'':'🎁'}<input class="hidden prize-file" type="file" accept="image/*"></label>
+          <input class="field prize-name" type="text" value="${escapeHtml(p.name)}" placeholder="獎項名稱" aria-label="獎項名稱">
+          <input class="field count-field prize-count" type="number" min="1" value="${Math.max(1,Number(p.count)||1)}" aria-label="獎項數量">
+          <button class="delete-prize" type="button" aria-label="刪除獎項">✕</button>
+        </div>
+        <div class="remaining">剩餘 <b>${remainingOf(p)}</b> / ${Math.max(1,Number(p.count)||1)}</div>
+      </div>`;
+    }).join('');
+  }
+  function updateRemainingLabels(){
+    els.prizeList.querySelectorAll('.prize-row').forEach(row=>{
+      const p=state.prizes.find(x=>x.id===row.dataset.id); if(!p)return;
+      const r=row.querySelector('.remaining'); if(r) r.innerHTML=`剩餘 <b>${remainingOf(p)}</b> / ${Math.max(1,Number(p.count)||1)}`;
+    });
+    updateDrawAvailability();
+  }
+  function renderWinners(){
+    if(!state.winners.length){ els.winnerList.innerHTML='<div class="empty">尚無紀錄</div>'; return; }
+    els.winnerList.innerHTML=state.winners.map(w=>`<div class="winner-row"><span class="winner-name">${escapeHtml(w.prize)}</span><span class="winner-time">${escapeHtml(w.time)}</span></div>`).join('');
+  }
+  function updateDrawAvailability(){
+    const available=availablePrizes();
+    els.drawBtn.disabled=state.rolling || !!state.currentPrize || available.length===0;
+    els.drawBtn.textContent=state.rolling?'抽獎中...':'🎉 開始抽獎';
+    els.allDone.classList.toggle('hidden',!(available.length===0 && state.prizes.length>0 && !state.rolling && !state.currentPrize));
+  }
+  function showState(name){
+    els.idleState.classList.toggle('hidden',name!=='idle');
+    els.rollingState.classList.toggle('hidden',name!=='rolling');
+    els.winnerState.classList.toggle('hidden',name!=='winner');
+    els.homeBtn.classList.toggle('hidden',name!=='winner');
+  }
+  function renderAll(){ renderBackground();renderIdleImage();renderPrizes();renderWinners();showState('idle');updateDrawAvailability(); }
+
+  function showToast(message){
+    els.toast.textContent=message; els.toast.classList.add('show');
+    clearTimeout(showToast._t); showToast._t=setTimeout(()=>els.toast.classList.remove('show'),2600);
+  }
+
+  function openDrawer(){ els.drawer.classList.add('open');els.drawer.setAttribute('aria-hidden','false');els.settingsBtn.classList.add('active'); }
+  function closeDrawer(){ els.drawer.classList.remove('open');els.drawer.setAttribute('aria-hidden','true');els.settingsBtn.classList.remove('active'); }
+
+  async function toggleFullscreen(){
+    try{
+      if(!document.fullscreenElement && !document.webkitFullscreenElement){
+        const req=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+        if(req) await req.call(document.documentElement); else showToast('此 iPad 瀏覽器不支援網頁全螢幕，可改用「加入主畫面」。');
+      }else{
+        const exit=document.exitFullscreen||document.webkitExitFullscreen; if(exit) await exit.call(document);
+      }
+    }catch(e){ showToast('無法切換全螢幕，可直接以目前畫面操作。'); }
+  }
+  function updateFullscreenButton(){ els.fullscreenBtn.classList.toggle('active',!!document.fullscreenElement||!!document.webkitFullscreenElement); }
+
+  function readFile(file,done){
+    if(!file)return; const reader=new FileReader();
+    reader.onload=e=>done(e.target.result); reader.onerror=()=>showToast('圖片讀取失敗，請改用 JPG 或 PNG。'); reader.readAsDataURL(file);
+  }
+
+  function weightedPick(list){
+    const total=list.reduce((s,p)=>s+remainingOf(p),0); let r=Math.random()*total;
+    for(const p of list){ r-=remainingOf(p); if(r<=0)return p; }
+    return list[list.length-1];
+  }
+
+  function startDraw(){
+    if(state.rolling||state.currentPrize)return;
+    const pool=availablePrizes(); if(!pool.length)return;
+    const winner=weightedPick(pool); state.rolling=true;showState('rolling');updateDrawAvailability();
+    const fastPhase=1200,totalDuration=2200,start=performance.now(); let last=0;
+    function frame(ts){
+      const elapsed=ts-start;
+      const interval=elapsed<fastPhase?60:60+220*((elapsed-fastPhase)/(totalDuration-fastPhase));
+      if(elapsed-last>=interval){
+        const flash=pool[Math.floor(Math.random()*pool.length)];
+        els.rollingName.textContent=flash.name||'獎項';
+        if(flash.image){els.rollingImg.style.backgroundImage=`url(${flash.image})`;els.rollingImg.classList.remove('hidden');}
+        else{els.rollingImg.classList.add('hidden');els.rollingImg.style.backgroundImage='none';}
+        last=elapsed;
+      }
+      if(elapsed<totalDuration) requestAnimationFrame(frame);
+      else{
+        els.rollingName.textContent=winner.name||'獎項';
+        if(winner.image){els.rollingImg.style.backgroundImage=`url(${winner.image})`;els.rollingImg.classList.remove('hidden');}
+        else els.rollingImg.classList.add('hidden');
+        setTimeout(()=>finalizeDraw(winner),250);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  function finalizeDraw(winner){
+    const now=new Date();
+    const time=now.toLocaleString('zh-TW',{hour12:false});
+    state.winners.unshift({prizeId:winner.id,prize:winner.name,time}); saveWinners();
+    state.rolling=false;state.currentPrize=winner;
+    els.winnerPrize.textContent=winner.name||'獎項';
+    if(winner.image){els.winnerImg.style.backgroundImage=`url(${winner.image})`;els.winnerImg.classList.remove('hidden');els.winnerGift.classList.add('hidden');}
+    else{els.winnerImg.classList.add('hidden');els.winnerGift.classList.remove('hidden');}
+    renderWinners();updateRemainingLabels();showState('winner');updateDrawAvailability();fireConfetti();
+  }
+  function returnHome(){ state.currentPrize=null;showState('idle');updateDrawAvailability(); }
+
+  function exportWinners(){
+    if(!state.winners.length){showToast('尚無中獎紀錄可供匯出！');return;}
+    let csv='序號,獎項,時間\n';
+    state.winners.slice().reverse().forEach((w,i)=>{csv+=`${i+1},"${String(w.prize).replace(/"/g,'""')}","${String(w.time).replace(/"/g,'""')}"\n`;});
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    const now=new Date();a.href=url;a.download=`抽獎紀錄_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  // 內建輕量紙花效果，不依賴任何 CDN，離線也能執行
+  function fireConfetti(){
+    const canvas=els.canvas,ctx=canvas.getContext('2d'); if(!ctx)return;
+    const dpr=Math.min(window.devicePixelRatio||1,2),rect=canvas.getBoundingClientRect(); canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    const colors=['#f2b134','#29c2a6','#ffd873','#ffffff','#5cd6c0']; const parts=[];
+    for(let side=0;side<2;side++)for(let i=0;i<70;i++){
+      const x=side===0?-8:rect.width+8; const angle=(side===0?-1:1)*(Math.random()*.72+.08);
+      parts.push({x,y:rect.height*(.2+Math.random()*.35),vx:(side===0?1:-1)*(4.5+Math.random()*6),vy:-2.5+Math.random()*5,w:5+Math.random()*6,h:8+Math.random()*9,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.28,g:.11+Math.random()*.08,c:colors[Math.floor(Math.random()*colors.length)],life:110+Math.random()*70});
+    }
+    function tick(){
+      ctx.clearRect(0,0,rect.width,rect.height); let alive=0;
+      parts.forEach(p=>{if(p.life<=0)return;alive++;p.life--;p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=.992;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();});
+      if(alive)requestAnimationFrame(tick);else ctx.clearRect(0,0,rect.width,rect.height);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  els.settingsBtn.addEventListener('click',()=>els.drawer.classList.contains('open')?closeDrawer():openDrawer());
+  els.closeDrawerBtn.addEventListener('click',closeDrawer);
+  els.fullscreenBtn.addEventListener('click',toggleFullscreen);
+  document.addEventListener('fullscreenchange',updateFullscreenButton);document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+
+  els.bgInput.addEventListener('change',e=>readFile(e.target.files[0],data=>{state.bgImage=data;renderBackground();storageSet(KEYS.bg,data);e.target.value='';}));
+  els.clearBgBtn.addEventListener('click',()=>{state.bgImage=null;renderBackground();storageRemove(KEYS.bg);});
+  els.idleInput.addEventListener('change',e=>readFile(e.target.files[0],data=>{state.idleImage=data;renderIdleImage();storageSet(KEYS.idle,data);e.target.value='';}));
+  els.clearIdleBtn.addEventListener('click',()=>{state.idleImage=null;renderIdleImage();storageRemove(KEYS.idle);});
+  els.idleSizeRange.addEventListener('input',e=>{state.idleSize=clamp(Number(e.target.value)||38,18,56);renderIdleImage();storageSet(KEYS.idleSize,String(state.idleSize));});
+
+  els.addPrizeBtn.addEventListener('click',()=>{state.prizes.push({id:genId(),name:'新獎項',count:1,image:null});savePrizes();renderPrizes();updateDrawAvailability();setTimeout(()=>{els.prizeList.scrollTop=els.prizeList.scrollHeight;},0);});
+  els.prizeList.addEventListener('input',e=>{
+    const row=e.target.closest('.prize-row');if(!row)return;const p=state.prizes.find(x=>x.id===row.dataset.id);if(!p)return;
+    if(e.target.classList.contains('prize-name'))p.name=e.target.value;
+    if(e.target.classList.contains('prize-count')){p.count=Math.max(1,Number(e.target.value)||1);e.target.value=p.count;}
+    savePrizes();updateRemainingLabels();
+  });
+  els.prizeList.addEventListener('change',e=>{
+    if(!e.target.classList.contains('prize-file'))return; const row=e.target.closest('.prize-row');const p=state.prizes.find(x=>x.id===row.dataset.id);if(!p)return;
+    readFile(e.target.files[0],data=>{p.image=data;savePrizes();renderPrizes();});
+  });
+  els.prizeList.addEventListener('click',e=>{
+    const btn=e.target.closest('.delete-prize');if(!btn)return;const row=btn.closest('.prize-row');const p=state.prizes.find(x=>x.id===row.dataset.id);if(!p)return;
+    if(state.winners.some(w=>w.prizeId===p.id)){ if(!confirm(`「${p.name}」已有中獎紀錄，刪除後紀錄仍會保留。確定刪除獎項？`))return; }
+    state.prizes=state.prizes.filter(x=>x.id!==p.id);savePrizes();renderPrizes();updateDrawAvailability();
+  });
+
+  els.drawBtn.addEventListener('click',startDraw);els.homeBtn.addEventListener('click',returnHome);els.exportBtn.addEventListener('click',exportWinners);
+  els.clearWinnersBtn.addEventListener('click',()=>{if(!state.winners.length)return;if(confirm('確定清空中獎紀錄？此操作將重新計算各獎項剩餘數量。')){state.winners=[];state.currentPrize=null;saveWinners();renderWinners();updateRemainingLabels();showState('idle');updateDrawAvailability();}});
+  els.resetBtn.addEventListener('click',()=>{if(confirm('確定重設所有中獎紀錄？獎項名稱與數量會保留。')){state.winners=[];state.currentPrize=null;saveWinners();renderWinners();updateRemainingLabels();showState('idle');updateDrawAvailability();}});
+
+  loadState();renderAll();
+})();
+</script>
+</body>
+</html>
