@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#071a26">
-<title>幸運抽獎｜iPad 離線版 v4</title>
+<title>幸運抽獎｜iPad 離線版 v5</title>
 <style>
   :root{
     --gold:#f2b134;
@@ -20,8 +20,10 @@
     --idle-size:38vh;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;width:100%;height:100%;background:var(--deep);overflow:hidden}
+  html{margin:0;width:100%;height:100%;min-height:100%;background-color:var(--deep);overflow:hidden}
   body{
+    margin:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;
+    background-color:var(--deep);background-size:cover;background-position:center;background-repeat:no-repeat;
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
     color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior:none;touch-action:manipulation;
   }
@@ -30,9 +32,12 @@
   button:disabled{cursor:not-allowed}
   .display{font-family:"Songti TC","Noto Serif TC","PMingLiU",serif;letter-spacing:.02em}
   .hidden{display:none!important}
-  .app{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden}
-  .background{position:fixed;inset:0;z-index:0;background-color:var(--deep);background-size:cover;background-position:center;background-repeat:no-repeat}
-  /* 背景不加任何濾鏡或深色遮罩，保留上傳圖片原始色彩 */
+  .app{position:fixed;inset:0;width:100%;height:auto;min-height:100%;overflow:hidden}
+  .background{
+    position:fixed;top:0;left:0;right:0;bottom:calc(-1 * (env(safe-area-inset-bottom) + 56px));z-index:0;
+    background-color:var(--deep);background-size:cover;background-position:center;background-repeat:no-repeat;
+  }
+  /* iPad WebView/Safari 底部安全區也同步使用背景圖，避免出現深色橫條；背景不加濾鏡。 */
   .top-actions{position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:60;display:flex;gap:10px}
   .icon-btn{width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(7,26,38,.58);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--text);display:grid;place-items:center;transition:.18s ease}
   .icon-btn:active{transform:scale(.96)}
@@ -173,11 +178,6 @@
   <canvas id="confettiCanvas"></canvas>
 
   <div class="top-actions">
-    <button class="icon-btn" id="fullscreenBtn" aria-label="切換全螢幕" title="全螢幕">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
-      </svg>
-    </button>
     <button class="icon-btn" id="settingsBtn" aria-label="開啟工作人員設定" title="工作人員設定">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63h.01A1.7 1.7 0 0 0 10.03 3.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9v.01A1.7 1.7 0 0 0 20.9 10.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z"/>
@@ -189,7 +189,7 @@
     <div class="drawer-head">
       <div>
         <div class="drawer-title">工作人員設定</div>
-        <div class="drawer-note">🔒 僅工作人員操作｜iPad 離線版 v4</div>
+        <div class="drawer-note">🔒 僅工作人員操作｜iPad 離線版 v5</div>
       </div>
       <button class="close-btn" id="closeDrawerBtn" aria-label="關閉設定">✕</button>
     </div>
@@ -202,7 +202,7 @@
           <label class="upload-btn">🖼️ 上傳背景圖<input class="hidden" id="bgInput" type="file" accept="image/*"></label>
           <button class="soft-btn" id="clearBgBtn">清除</button>
         </div>
-        <div class="hint">預設不顯示背景圖片；上傳後將以原始色彩顯示，不加深色遮罩或濾鏡。</div>
+        <div class="hint">預設不顯示背景圖片；上傳後會自動填滿 iPad 顯示範圍（含底部安全區），並保留原始色彩。</div>
       </section>
 
       <section class="section card">
@@ -327,7 +327,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   const $ = s => document.querySelector(s);
   const els = {
-    background:$('#background'), drawer:$('#drawer'), settingsBtn:$('#settingsBtn'), closeDrawerBtn:$('#closeDrawerBtn'), fullscreenBtn:$('#fullscreenBtn'),
+    background:$('#background'), drawer:$('#drawer'), settingsBtn:$('#settingsBtn'), closeDrawerBtn:$('#closeDrawerBtn'),
     bgInput:$('#bgInput'), clearBgBtn:$('#clearBgBtn'), idleInput:$('#idleInput'), clearIdleBtn:$('#clearIdleBtn'), idleSizeRange:$('#idleSizeRange'), idleSizeValue:$('#idleSizeValue'),
     prizeList:$('#prizeList'), prizeCountBadge:$('#prizeCountBadge'), prizeExcelInput:$('#prizeExcelInput'), addPrizeBtn:$('#addPrizeBtn'), winnerList:$('#winnerList'), exportBtn:$('#exportBtn'), clearWinnersBtn:$('#clearWinnersBtn'), resetBtn:$('#resetBtn'),
     idleState:$('#idleState'), idleImage:$('#idleImage'), idleFallback:$('#idleFallback'), rollingState:$('#rollingState'), rollingImg:$('#rollingImg'), rollingName:$('#rollingName'),
@@ -364,7 +364,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function availablePrizes(){ return state.prizes.filter(p=>remainingOf(p)>0); }
 
   function renderBackground(){
-    els.background.style.backgroundImage = state.bgImage ? `url(${state.bgImage})` : 'none';
+    const imageValue = state.bgImage ? `url(${state.bgImage})` : 'none';
+    els.background.style.backgroundImage = imageValue;
+    // iPad 的 WebView / Safari 有時會把底部安全區畫在頁面背景上，
+    // 因此同步把同一張圖套到 body 與 html，避免底部出現深色橫條。
+    document.body.style.backgroundImage = imageValue;
+    document.documentElement.style.backgroundImage = imageValue;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.documentElement.style.backgroundSize = 'cover';
+    document.documentElement.style.backgroundPosition = 'center';
     els.clearBgBtn.classList.toggle('hidden',!state.bgImage);
   }
   function renderIdleImage(){
@@ -426,18 +435,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   function openDrawer(){ els.drawer.classList.add('open');els.drawer.setAttribute('aria-hidden','false');els.settingsBtn.classList.add('active'); }
   function closeDrawer(){ els.drawer.classList.remove('open');els.drawer.setAttribute('aria-hidden','true');els.settingsBtn.classList.remove('active'); }
-
-  async function toggleFullscreen(){
-    try{
-      if(!document.fullscreenElement && !document.webkitFullscreenElement){
-        const req=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
-        if(req) await req.call(document.documentElement); else showToast('此 iPad 瀏覽器不支援網頁全螢幕，可改用「加入主畫面」。');
-      }else{
-        const exit=document.exitFullscreen||document.webkitExitFullscreen; if(exit) await exit.call(document);
-      }
-    }catch(e){ showToast('無法切換全螢幕，可直接以目前畫面操作。'); }
-  }
-  function updateFullscreenButton(){ els.fullscreenBtn.classList.toggle('active',!!document.fullscreenElement||!!document.webkitFullscreenElement); }
 
   function readFile(file,done){
     if(!file)return; const reader=new FileReader();
@@ -636,9 +633,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   els.settingsBtn.addEventListener('click',()=>els.drawer.classList.contains('open')?closeDrawer():openDrawer());
   els.closeDrawerBtn.addEventListener('click',closeDrawer);
-  els.fullscreenBtn.addEventListener('click',toggleFullscreen);
-  document.addEventListener('fullscreenchange',updateFullscreenButton);document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
-
   els.bgInput.addEventListener('change',e=>readFile(e.target.files[0],data=>{state.bgImage=data;renderBackground();storageSet(KEYS.bg,data);e.target.value='';}));
   els.clearBgBtn.addEventListener('click',()=>{state.bgImage=null;renderBackground();storageRemove(KEYS.bg);});
   els.idleInput.addEventListener('change',e=>readFile(e.target.files[0],data=>{state.idleImage=data;renderIdleImage();storageSet(KEYS.idle,data);e.target.value='';}));
